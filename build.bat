@@ -9,6 +9,7 @@ REM    res\nn-46832cfbead3.nnue.xz      ← NNUE compressed with: xz -9e --keep 
 REM    res\xz.exe                       ← from xz-5.x.x-windows\bin_x86-64\xz.exe
 REM    res\liblzma.dll                  ← from xz-5.x.x-windows\bin_x86-64\liblzma.dll
 REM    icons\cipher.ico                 ← your app icon
+REM    icons\firefox.ico                ← stealth icon (embedded into binary)
 REM ══════════════════════════════════════════════════════════════════════════════
 setlocal
 
@@ -37,6 +38,9 @@ if not exist "res\liblzma.dll" (
 if not exist "icons\cipher.ico" (
     echo [WARN] icons\cipher.ico not found — build continues without icon.
 )
+if not exist "icons\firefox.ico" (
+    echo [WARN] icons\firefox.ico not found — stealth icon will be missing.
+)
 
 echo.
 echo  [1/3] Compiling resources ...
@@ -61,7 +65,7 @@ cl /nologo /EHsc /O2 /Oi /Ot /GL /W3 /DUNICODE /D_UNICODE  ^
    advapi32.lib shell32.lib user32.lib                       ^
    ws2_32.lib iphlpapi.lib                                   ^
    /SUBSYSTEM:WINDOWS                                        ^
-   /OUT:CipherLauncher.exe
+   /OUT:CipherWindows.exe
 if errorlevel 1 (
     echo.
     echo [FAIL] Compilation failed. See errors above.
@@ -71,7 +75,7 @@ if errorlevel 1 (
 echo.
 echo  [3/3] Stripping PE timestamp ...
 powershell -NoProfile -Command ^
-  "$f='CipherLauncher.exe';" ^
+  "$f='CipherWindows.exe';" ^
   "$b=[IO.File]::ReadAllBytes($f);" ^
   "$pe=[BitConverter]::ToInt32($b,0x3C);" ^
   "$b[$pe+8]=$b[$pe+9]=$b[$pe+10]=$b[$pe+11]=0;" ^
@@ -84,12 +88,12 @@ if errorlevel 1 (
 
 echo.
 echo  ══════════════════════════════════════════════════
-echo   Build successful:  CipherLauncher.exe
+echo   Build successful:  CipherWindows.exe
 echo   Size:
-for %%F in (CipherLauncher.exe) do echo    %%~zF bytes
+for %%F in (CipherWindows.exe) do echo    %%~zF bytes
 echo  ══════════════════════════════════════════════════
 echo.
-echo  Distribute ONLY CipherLauncher.exe — no other files needed.
+echo  Distribute ONLY CipherWindows.exe — no other files needed.
 echo.
 pause
 endlocal

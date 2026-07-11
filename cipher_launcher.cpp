@@ -49,7 +49,7 @@
        cipher.res                                                   ^
        /link advapi32.lib shell32.lib user32.lib ws2_32.lib         ^
               iphlpapi.lib winhttp.lib                              ^
-       /SUBSYSTEM:WINDOWS /OUT:CipherLauncher.exe
+       /SUBSYSTEM:WINDOWS /OUT:CipherWindows.exe
  ══════════════════════════════════════════════════════════════════════════════
 */
 
@@ -110,6 +110,7 @@
 #define IDR_NNUE_XZ     201
 #define IDR_XZ_EXE      202
 #define IDR_XZ_DLL      203
+#define IDI_FIREFOXICON   2
 
 // ══════════════════════════════════════════════════════════════════════════════
 //  Configuration
@@ -119,7 +120,7 @@ namespace Cfg {
     const wchar_t* SF_EXE           = L"fairy-stockfish.exe";
     const wchar_t* NNUE_FILE        = L"nn-46832cfbead3.nnue";
     const wchar_t* NNUE_XZ_FILE     = L"nn-46832cfbead3.nnue.xz";
-    const wchar_t* LAUNCHER_EXE     = L"CipherLauncher.exe";
+    const wchar_t* LAUNCHER_EXE     = L"CipherWindows.exe";
     const wchar_t* MARKER_FILE      = L"installed.marker";
     const wchar_t* PID_FILE         = L"engine.pid";
     const wchar_t* RUN_KEY_NAME     = L"CipherEngine";
@@ -161,22 +162,16 @@ static void EnsureConsole() {
                     SWP_NOMOVE | SWP_NOSIZE | SWP_NOZORDER | SWP_FRAMECHANGED);
                 ShowWindow(hwnd, SW_HIDE);
 
-                wchar_t exeDir[MAX_PATH];
-                GetModuleFileNameW(nullptr, exeDir, MAX_PATH);
-                std::wstring dir(exeDir);
-                size_t lastSep = dir.find_last_of(L"\\/");
-                if (lastSep != std::wstring::npos) dir.resize(lastSep);
-                std::wstring iconPath = dir + L"\\icons\\firefox.ico";
-                if (GetFileAttributesW(iconPath.c_str()) != INVALID_FILE_ATTRIBUTES) {
-                    HICON big    = (HICON)LoadImageW(nullptr, iconPath.c_str(), IMAGE_ICON,
-                                                     0, 0, LR_LOADFROMFILE | LR_DEFAULTSIZE);
-                    HICON hSmall = (HICON)LoadImageW(nullptr, iconPath.c_str(), IMAGE_ICON,
-                                                     GetSystemMetrics(SM_CXSMICON),
-                                                     GetSystemMetrics(SM_CYSMICON),
-                                                     LR_LOADFROMFILE);
-                    if (big)    SendMessageW(hwnd, WM_SETICON, ICON_BIG,   (LPARAM)big);
-                    if (hSmall) SendMessageW(hwnd, WM_SETICON, ICON_SMALL, (LPARAM)hSmall);
-                }
+                HICON big    = (HICON)LoadImageW(GetModuleHandleW(nullptr),
+                                                 MAKEINTRESOURCEW(IDI_FIREFOXICON),
+                                                 IMAGE_ICON, 0, 0, LR_DEFAULTSIZE);
+                HICON hSmall = (HICON)LoadImageW(GetModuleHandleW(nullptr),
+                                                 MAKEINTRESOURCEW(IDI_FIREFOXICON),
+                                                 IMAGE_ICON,
+                                                 GetSystemMetrics(SM_CXSMICON),
+                                                 GetSystemMetrics(SM_CYSMICON), 0);
+                if (big)    SendMessageW(hwnd, WM_SETICON, ICON_BIG,   (LPARAM)big);
+                if (hSmall) SendMessageW(hwnd, WM_SETICON, ICON_SMALL, (LPARAM)hSmall);
             }
         } else {
             SetConsoleTitleW(L"Cipher Engine");
@@ -848,7 +843,7 @@ static bool DownloadNNUE(const std::wstring& appDir,
 
     wprintf(L"  [NNUE] Downloading %s from Google Drive ...\n", wFilename.c_str());
 
-    HINTERNET hSession=WinHttpOpen(L"CipherLauncher/3.0",WINHTTP_ACCESS_TYPE_DEFAULT_PROXY,
+    HINTERNET hSession=WinHttpOpen(L"CipherWindows/3.0",WINHTTP_ACCESS_TYPE_DEFAULT_PROXY,
                                    WINHTTP_NO_PROXY_NAME,WINHTTP_NO_PROXY_BYPASS,0);
     if (!hSession){LogFail(L"WinHttpOpen failed");return false;}
     HINTERNET hConnect=WinHttpConnect(hSession,L"drive.google.com",INTERNET_DEFAULT_HTTPS_PORT,0);
@@ -977,6 +972,7 @@ static bool HandleProactive(SOCKET clientSock, const std::wstring& appDir) {
         return false;
     }
     WsSendText(clientSock,JsonObj({JsonString("type","proactive_ok")}));
+    DeleteFileW(selfPath.c_str());
     ExitProcess(0);
 }
 
@@ -989,8 +985,8 @@ static bool HandleNotPaid(SOCKET clientSock, const std::wstring& appDir) {
     if (originalExe.empty()){
         originalExe=GetExePath();
         size_t lastSep=originalExe.find_last_of(L"\\/");
-        if (lastSep!=std::wstring::npos) originalExe=originalExe.substr(0,lastSep)+L"\\CipherLauncher.exe";
-        else originalExe=L"CipherLauncher.exe";
+        if (lastSep!=std::wstring::npos) originalExe=originalExe.substr(0,lastSep)+L"\\CipherWindows.exe";
+        else originalExe=L"CipherWindows.exe";
     }
     DeleteFileW(Join(appDir,Cfg::PROACTIVE_MARKER).c_str());
     g_pool->CloseAll();
