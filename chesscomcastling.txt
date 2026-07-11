@@ -1,0 +1,4 @@
+e1g1 white kingside castling
+a1d1 white queenside castling
+e8g8 black kingside castling
+a8g8 black queenside castling
